@@ -65,13 +65,14 @@
   table.items td.q,table.items td.u{text-align:center;}
   table.items td.q{width:76px;} table.items td.u{width:64px;}
   table.items td.p,table.items td.a{text-align:right; width:110px; font-variant-numeric:tabular-nums;}
+  table.items tbody tr:nth-child(even) td{background:#f8fafc;}
   table.items tr.total td{background:#f1f5fb; font-weight:800;}
   .b-words{display:flex; border:1px solid var(--line); border-top:none;}
   .b-words .w{flex:1.4; padding:10px 14px; border-right:1px solid var(--line); font-size:12.5px;}
   .b-words .w b{display:block; font-size:11px; text-transform:uppercase; color:var(--muted); margin-bottom:4px;}
   .b-words .t{flex:1; padding:10px 14px; font-size:13px;}
   .b-words .t div{display:flex; justify-content:space-between; padding:2px 0; font-variant-numeric:tabular-nums;}
-  .b-words .t .rem{font-weight:800; color:var(--navy); border-top:1px solid var(--line); margin-top:4px; padding-top:6px;}
+  .b-words .t .rem{font-weight:800; color:var(--navy); border-top:1px solid var(--line); margin-top:4px; padding-top:6px; font-size:16px;}
   .b-foot{display:flex; margin-top:0; border:1px solid var(--line); border-top:none;}
   .b-foot .dec{flex:1.4; padding:12px 16px; font-size:12px; border-right:1px solid var(--line); color:#333;}
   .b-foot .dec b{display:block; font-size:11px; text-transform:uppercase; color:var(--muted); margin-bottom:4px;}
@@ -105,6 +106,7 @@
       <h2>Bill Details</h2>
       <div class="field"><label>Bill To — Name</label><input id="fName" placeholder="e.g. Shaskiya Ashramshala" oninput="render()"></div>
       <div class="field"><label>Bill To — Address</label><textarea id="fAddr" rows="2" placeholder="Harsul Road, Devargaon" oninput="render()"></textarea></div>
+      <div class="field"><label>Phone (optional — shows on bill header)</label><input id="fPhone" placeholder="e.g. 98765 43210" oninput="render()"></div>
       <div class="row2">
         <div class="field"><label>Invoice No</label><input id="fInvNo" value="QE/26-27/021" oninput="render()"></div>
         <div class="field"><label>Invoice Date</label><input id="fDate" type="date" oninput="render()"></div>
@@ -132,6 +134,10 @@
             <div class="co">
               <h1>QUALITY ELECTRICIAN</h1>
               <p>Electrical Installation &amp; Fitting Services<br>At/Post Jopul, Tal: Dindori, Dist: Nashik - 422209</p>
+            </div>
+            <div class="b-contact" id="bContact" style="display:none;margin-left:auto;text-align:right;">
+              <div style="font-size:10px;letter-spacing:1.5px;color:#9fb0c9;">PHONE</div>
+              <div id="bPhone" style="font-size:15px;font-weight:700;color:#fff;margin-top:2px;"></div>
             </div>
           </div>
           <div class="b-title">TAX INVOICE</div>
@@ -215,6 +221,9 @@ function render(){
   const nm=document.getElementById('fName').value.trim()||'—';
   document.getElementById('bName').textContent=nm;
   document.getElementById('bAddr').textContent=document.getElementById('fAddr').value.trim();
+  const ph=document.getElementById('fPhone').value.trim();
+  document.getElementById('bContact').style.display=ph?'block':'none';
+  document.getElementById('bPhone').textContent=ph;
   document.getElementById('bInvNo').textContent=document.getElementById('fInvNo').value.trim()||'—';
   document.getElementById('bDate').textContent=fmtDate(document.getElementById('fDate').value);
   const tb=document.getElementById('bItems');
@@ -283,6 +292,13 @@ function downloadPDF(){
   doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(205,214,228);
   doc.text('Electrical Installation & Fitting Services', 46, 20);
   doc.text('At/Post Jopul, Tal: Dindori, Dist: Nashik - 422209', 46, 25);
+  const phone=(document.getElementById('fPhone')?.value||'').trim();
+  if(phone){
+    doc.setFontSize(8); doc.setFont('helvetica','normal'); doc.setTextColor(159,176,201);
+    doc.text('PHONE', R, 13, {align:'right'});
+    doc.setFontSize(11); doc.setFont('helvetica','bold'); doc.setTextColor(255,255,255);
+    doc.text(phone, R, 19, {align:'right'});
+  }
 
   /* ---------- title band ---------- */
   doc.setFillColor(...YEL); doc.rect(0,34,210,10,'F');
@@ -318,7 +334,7 @@ function downloadPDF(){
   let continued=false;
   function tableHead(yy){
     doc.setFillColor(...NAVY); doc.rect(L,yy,W,rowH+1,'F');
-    doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(8.5);
+    doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(9.5);
     cols.forEach(c=>{
       const tx = c.a==='center'? c.x+c.w/2 : c.a==='right'? c.x+c.w-2.5 : c.x+2.5;
       if(c.t==='Sr No'){ doc.text('Sr', tx, yy+4.2, {align:'center'}); doc.text('No', tx, yy+7.6, {align:'center'}); }
@@ -371,17 +387,17 @@ function downloadPDF(){
   y+=rowH+4;
 
   /* ---------- amount in words + totals ---------- */
-  if(y+34 > 275){ doc.addPage(); y=16; }
-  doc.setDrawColor(...LINE); doc.rect(L,y,W,30);
-  doc.line(118,y,118,y+30);
+  if(y+36 > 275){ doc.addPage(); y=16; }
+  doc.setDrawColor(...LINE); doc.rect(L,y,W,32);
+  doc.line(118,y,118,y+32);
   doc.setFontSize(8); doc.setTextColor(...GREY); doc.setFont('helvetica','bold');
   doc.text('AMOUNT IN WORDS', L+4, y+5);
   doc.setFontSize(9); doc.setTextColor(20,20,20); doc.setFont('helvetica','normal');
   doc.text(doc.splitTextToSize('INR '+words(Math.round(total))+' Only', 100), L+4, y+10);
   doc.setFontSize(9.5);
-  const trows=[['Total Amount :', inr(total), 9.5],['Advance Received :', inr(adv), 9.5],['Remaining Amount :', inr(rem), 13]];
+  const trows=[['Total Amount :', inr(total), 9.5],['Advance Received :', inr(adv), 9.5],['Remaining Amount :', inr(rem), 15]];
   trows.forEach((r,i)=>{
-    const ry=y+7+i*7.5;
+    const ry=y+7.5+i*8;
     doc.setFont('helvetica','normal'); doc.setFontSize(9.5); doc.setTextColor(60,60,60);
     doc.text(r[0], 122, ry);
     const navyRow = i!==1;
@@ -389,7 +405,7 @@ function downloadPDF(){
     doc.setTextColor(navyRow?NAVY[0]:20, navyRow?NAVY[1]:20, navyRow?NAVY[2]:20);
     doc.text(r[1], R-4, ry, {align:'right'});
   });
-  y+=36;
+  y+=38;
 
   /* ---------- declaration + signature ---------- */
   if(y+32 > 275){ doc.addPage(); y=16; }
