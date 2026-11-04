@@ -12,7 +12,7 @@
   *{box-sizing:border-box; margin:0; padding:0;}
   body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif; background:var(--bg); color:var(--ink);}
   header.topbar{background:var(--navy); color:#fff; padding:12px 20px; display:flex; align-items:center; gap:12px; position:sticky; top:0; z-index:50;}
-  header.topbar img{height:38px; border-radius:6px;}
+  header.topbar img{height:44px;}
   header.topbar h1{font-size:18px; font-weight:700; letter-spacing:.3px;}
   header.topbar small{display:block; font-size:11px; color:#b9c4d6; font-weight:400;}
   .wrap{max-width:1280px; margin:0 auto; padding:16px;}
@@ -46,7 +46,7 @@
   /* ---------- BILL (A4, 800px) ---------- */
   #bill{width:800px; background:#fff; color:#111; font-size:13px; line-height:1.45;}
   .b-head{background:var(--navy); color:#fff; display:flex; align-items:center; gap:18px; padding:18px 24px;}
-  .b-head img{height:74px; border-radius:8px; background:#000;}
+  .b-head img{height:92px;}
   .b-head .co h1{font-size:30px; letter-spacing:1px;}
   .b-head .co p{font-size:12.5px; color:#cdd6e4; margin-top:2px;}
   .b-title{background:var(--yellow); color:var(--navy); text-align:center; font-weight:800; letter-spacing:4px; padding:7px; font-size:15px;}
@@ -165,7 +165,7 @@
   </div>
 </div>
 
-<script src="html2pdf.bundle.min.js"></script>
+<script src="jspdf.umd.min.js"></script>
 <script>
 const UOMS=["Nos","Mtr","Lot","Set","Job","Sq Ft"];
 document.getElementById('fDate').valueAsDate=new Date();
@@ -251,20 +251,176 @@ function loadSample(){
   [['Light Point',293,'Nos',165],['Soket Point',236,'Nos',165],['Fan Point',139,'Nos',165],['Power Point',14,'Nos',330],['Earthing Point',112,'Nos',165],['Main Line Suply',600,'Mtr',40],['DB Box',1,'Nos',3000]]
     .forEach(r=>addItem(...r));
 }
+/* Preload logo for crisp PDF embedding */
+const logoImg = new Image(); logoImg.src = 'logo.png';
+
 function downloadPDF(){
   const name=document.getElementById('fName').value.trim();
   if(!name){alert('Please enter the Bill To name first.');return;}
-  if(getItems().length===0){alert('Please add at least one item.');return;}
+  const items=getItems();
+  if(items.length===0){alert('Please add at least one item.');return;}
   const btn=document.getElementById('dlBtn'); btn.disabled=true; btn.textContent='Generating PDF…';
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({unit:'mm', format:'a4', orientation:'portrait'});
+  const NAVY=[10,31,68], YEL=[255,184,0], GREY=[107,114,128], LINE=[215,220,227], LIGHT=[246,248,251];
+  const L=12, R=198, W=186; // margins & content width
   const fname=name.replace(/[^a-zA-Z0-9]+/g,'_').replace(/^_+|_+$/g,'')+'.pdf';
-  const el=document.getElementById('bill');
-  html2pdf().set({
-    margin:0, filename:fname,
-    image:{type:'jpeg',quality:0.98},
-    html2canvas:{scale:2,useCORS:true,backgroundColor:'#ffffff'},
-    jsPDF:{unit:'mm',format:'a4',orientation:'portrait'}
-  }).from(el).save().then(()=>{btn.disabled=false;btn.textContent='Download Bill (PDF)';})
-  .catch(()=>{btn.disabled=false;btn.textContent='Download Bill (PDF)';alert('PDF failed — try again.');});
+  const total=items.reduce((s,i)=>s+i.amt,0);
+  const adv=+document.getElementById('fAdv').value||0;
+  const rem=total-adv;
+  const invNo=document.getElementById('fInvNo').value.trim()||'—';
+  const invDate=fmtDate(document.getElementById('fDate').value);
+  const billAddr=document.getElementById('fAddr').value.trim();
+
+  /* ---------- header band (starts at very top) ---------- */
+  doc.setFillColor(...NAVY); doc.rect(0,0,210,34,'F');
+  if(logoImg.complete && logoImg.naturalWidth){
+    doc.addImage(logoImg,'PNG',L,5,30,20); // 3:2 logo
+  }
+  doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(17);
+  doc.text('QUALITY ELECTRICIAN', 46, 14);
+  doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(205,214,228);
+  doc.text('Electrical Installation & Fitting Services', 46, 20);
+  doc.text('At/Post Jopul, Tal: Dindori, Dist: Nashik - 422209', 46, 25);
+
+  /* ---------- title band ---------- */
+  doc.setFillColor(...YEL); doc.rect(0,34,210,10,'F');
+  doc.setTextColor(...NAVY); doc.setFont('helvetica','bold'); doc.setFontSize(12);
+  doc.text('T A X   I N V O I C E', 105, 40.8, {align:'center'});
+
+  /* ---------- bill-to / invoice meta ---------- */
+  let y=48;
+  doc.setDrawColor(...LINE); doc.setLineWidth(0.4);
+  doc.rect(L,y,92,22); doc.rect(106,y,92,22);
+  doc.setFontSize(8); doc.setTextColor(...GREY); doc.setFont('helvetica','bold');
+  doc.text('BILL TO', L+4, y+5); doc.text('INVOICE DETAILS', 110, y+5);
+  doc.setFontSize(10); doc.setTextColor(20,20,20);
+  doc.text(name, L+4, y+11);
+  doc.setFontSize(9); doc.setFont('helvetica','normal'); doc.setTextColor(60,60,60);
+  if(billAddr) doc.text(doc.splitTextToSize(billAddr, 84), L+4, y+16);
+  doc.setFontSize(9); doc.setTextColor(60,60,60);
+  doc.text('Invoice No :', 110, y+11); doc.text('Invoice Date :', 110, y+16);
+  doc.setFont('helvetica','bold'); doc.setTextColor(20,20,20);
+  doc.text(invNo, 138, y+11); doc.text(invDate, 138, y+16);
+  y+=28;
+
+  /* ---------- items table ---------- */
+  const cols=[ // x-start, width, align
+    {x:12,w:12,a:'center',t:'Sr No'},
+    {x:24,w:74,a:'left',t:'Item Name'},
+    {x:98,w:20,a:'center',t:'Quantity'},
+    {x:118,w:18,a:'center',t:'UOM'},
+    {x:136,w:28,a:'right',t:'Price / Unit'},
+    {x:164,w:34,a:'right',t:'Amount'}
+  ];
+  const rowH=7.5;
+  let continued=false;
+  function tableHead(yy){
+    doc.setFillColor(...NAVY); doc.rect(L,yy,W,rowH+1,'F');
+    doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(8.5);
+    cols.forEach(c=>{
+      const tx = c.a==='center'? c.x+c.w/2 : c.a==='right'? c.x+c.w-2.5 : c.x+2.5;
+      if(c.t==='Sr No'){ doc.text('Sr', tx, yy+4.2, {align:'center'}); doc.text('No', tx, yy+7.6, {align:'center'}); }
+      else doc.text(c.t, tx, yy+5.8, {align:c.a});
+    });
+    // vertical dividers
+    doc.setDrawColor(255,255,255); doc.setLineWidth(0.25);
+    cols.slice(1).forEach(c=> doc.line(c.x, yy, c.x, yy+rowH+1));
+    return yy+rowH+1;
+  }
+  function nextPage(){
+    doc.setFontSize(8); doc.setTextColor(...GREY); doc.setFont('helvetica','italic');
+    doc.text('continued on next page…', R-4, 272, {align:'right'});
+    doc.addPage(); continued=true;
+    return tableHead(14);
+  }
+  function cellX(c, pad){ return c.a==='center'? c.x+c.w/2 : c.a==='right'? c.x+c.w-2.5 : c.x+2.5; }
+  y=tableHead(y);
+  doc.setFontSize(9);
+  let qtyTot=0;
+  items.forEach((it,i)=>{
+    if(y+rowH > 268){ y=nextPage(); }
+    qtyTot+=it.qty;
+    if(i%2===1){ doc.setFillColor(...LIGHT); doc.rect(L,y,W,rowH,'F'); }
+    doc.setDrawColor(...LINE); doc.setLineWidth(0.3);
+    doc.rect(L,y,W,rowH);
+    cols.slice(1).forEach(c=> doc.line(c.x, y, c.x, y+rowH));
+    doc.setTextColor(20,20,20);
+    const vals=[String(i+1), it.name||'—', it.qty||'', it.uom, it.price?inr(it.price):'', inr(it.amt)];
+    doc.setFont('helvetica','normal');
+    cols.forEach((c,ci)=>{
+      let v=vals[ci];
+      if(ci===1 && doc.getTextWidth(v) > c.w-5) v=doc.splitTextToSize(v,c.w-5)[0];
+      doc.text(String(v), cellX(c), y+5, {align:c.a});
+    });
+    // bold amount
+    doc.setFont('helvetica','bold');
+    doc.text(inr(it.amt), cellX(cols[5]), y+5, {align:'right'});
+    y+=rowH;
+  });
+  // total row
+  if(y+rowH > 268){ y=nextPage(); }
+  doc.setFillColor(232,238,247); doc.rect(L,y,W,rowH,'F');
+  doc.setDrawColor(...LINE); doc.rect(L,y,W,rowH);
+  cols.slice(1).forEach(c=> doc.line(c.x, y, c.x, y+rowH));
+  doc.setFont('helvetica','bold'); doc.setTextColor(...NAVY); doc.setFontSize(9.5);
+  doc.text('Total', cellX(cols[1]), y+5, {align:'left'});
+  doc.text(String(qtyTot||''), cellX(cols[2]), y+5, {align:'center'});
+  doc.text(inr(total), cellX(cols[5]), y+5, {align:'right'});
+  y+=rowH+4;
+
+  /* ---------- amount in words + totals ---------- */
+  if(y+34 > 275){ doc.addPage(); y=16; }
+  doc.setDrawColor(...LINE); doc.rect(L,y,W,30);
+  doc.line(118,y,118,y+30);
+  doc.setFontSize(8); doc.setTextColor(...GREY); doc.setFont('helvetica','bold');
+  doc.text('AMOUNT IN WORDS', L+4, y+5);
+  doc.setFontSize(9); doc.setTextColor(20,20,20); doc.setFont('helvetica','normal');
+  doc.text(doc.splitTextToSize('INR '+words(Math.round(total))+' Only', 100), L+4, y+10);
+  doc.setFontSize(9.5);
+  const trows=[['Total Amount :', inr(total), 9.5],['Advance Received :', inr(adv), 9.5],['Remaining Amount :', inr(rem), 13]];
+  trows.forEach((r,i)=>{
+    const ry=y+7+i*7.5;
+    doc.setFont('helvetica','normal'); doc.setFontSize(9.5); doc.setTextColor(60,60,60);
+    doc.text(r[0], 122, ry);
+    const navyRow = i!==1;
+    doc.setFont('helvetica','bold'); doc.setFontSize(r[2]);
+    doc.setTextColor(navyRow?NAVY[0]:20, navyRow?NAVY[1]:20, navyRow?NAVY[2]:20);
+    doc.text(r[1], R-4, ry, {align:'right'});
+  });
+  y+=36;
+
+  /* ---------- declaration + signature ---------- */
+  if(y+32 > 275){ doc.addPage(); y=16; }
+  doc.setDrawColor(...LINE); doc.rect(L,y,W,30);
+  doc.line(118,y,118,y+30);
+  doc.setFontSize(8); doc.setTextColor(...GREY); doc.setFont('helvetica','bold');
+  doc.text('DECLARATION', L+4, y+5);
+  doc.setFontSize(8.5); doc.setTextColor(60,60,60); doc.setFont('helvetica','normal');
+  doc.text(doc.splitTextToSize('We hereby declare that this invoice shows the actual price of the goods described and that all particulars are true and correct.', 100), L+4, y+10);
+  doc.setFontSize(10); doc.setTextColor(20,20,20); doc.setFont('helvetica','bold');
+  doc.text('For QUALITY ELECTRICIAN', 158, y+8, {align:'center'});
+  doc.setFontSize(8.5); doc.setTextColor(...GREY); doc.setFont('helvetica','normal');
+  doc.text('Authorized Signatory', 158, y+25, {align:'center'});
+  y+=36;
+  doc.setFontSize(8); doc.setTextColor(...GREY);
+  doc.text('This is a Computer-Generated Invoice.', 105, y, {align:'center'});
+
+  /* ---------- page numbers + continuation headers ---------- */
+  const totalPages = doc.getNumberOfPages();
+  for(let i=1;i<=totalPages;i++){
+    doc.setPage(i);
+    doc.setFontSize(8); doc.setTextColor(...GREY); doc.setFont('helvetica','normal');
+    doc.text(`Page ${i} of ${totalPages}`, 105, 290, {align:'center'});
+    if(i>1){
+      doc.setFontSize(8.5); doc.setTextColor(...NAVY); doc.setFont('helvetica','bold');
+      doc.text(`TAX INVOICE  ${invNo} — continued`, L, 10);
+    }
+  }
+
+  doc.save(fname);
+  btn.disabled=false; btn.textContent='Download Bill (PDF)';
 }
 addItem();addItem();addItem();render();
 window.addEventListener('resize',()=>{showPane(window.innerWidth<=980?(document.getElementById('tabPrev').classList.contains('active')?'prev':'form'):'form');fitPreview();});
