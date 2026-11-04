@@ -44,7 +44,9 @@
   .preview-scroll{overflow:hidden; border:1px solid var(--line); border-radius:8px; background:#fff;}
   #billScaler{transform-origin:top left;}
   /* ---------- BILL (A4, 800px) ---------- */
-  #bill{width:800px; background:#fff; color:#111; font-size:13px; line-height:1.45;}
+  #bill{width:800px; background:#fff; color:#111; font-size:13px; line-height:1.45; display:flex; flex-direction:column;}
+  #bill.tall{min-height:1131px;} /* A4 ratio at 800px width: bottom-anchored money block for few items */
+  #bill.tall .b-bottom{margin-top:auto;}
   .b-head{background:var(--navy); color:#fff; display:flex; align-items:center; gap:18px; padding:18px 24px;}
   .b-head img{height:92px;}
   .b-head .co h1{font-size:30px; letter-spacing:1px;}
@@ -152,6 +154,7 @@
             <thead><tr><th class="n">Sr No</th><th>Item Name</th><th class="q">Quantity</th><th class="u">UOM</th><th class="p">Price / Unit</th><th class="a">Amount</th></tr></thead>
             <tbody id="bItems"></tbody>
           </table>
+          <div class="b-bottom">
           <div class="b-words">
             <div class="w"><b>Amount In Words</b><span id="bWords">—</span></div>
             <div class="t">
@@ -165,6 +168,7 @@
             <div class="sig"><div class="for">For QUALITY ELECTRICIAN</div><div class="as">Authorized Signatory</div></div>
           </div>
           <div class="b-note">This is a Computer-Generated Invoice.</div>
+          </div>
         </div>
       </div></div>
     </div>
@@ -233,6 +237,8 @@ function render(){
   document.getElementById('bTotal').textContent=inr(total);
   document.getElementById('bAdv').textContent=inr(adv);
   document.getElementById('bRem').textContent=inr(rem);
+  /* bottom-anchor the money block on short single-page bills */
+  document.getElementById('bill').classList.toggle('tall', items.length<=8);
   fitPreview();
 }
 function fitPreview(){
@@ -281,6 +287,17 @@ function downloadPDF(){
   const invNo=document.getElementById('fInvNo').value.trim()||'—';
   const invDate=fmtDate(document.getElementById('fDate').value);
   const billAddr=document.getElementById('fAddr').value.trim();
+
+  /* bottom-anchor the money block on short single-page bills:
+     distribute slack symmetrically instead of letting content float */
+  let pad1=0, pad2=0, pad3=0;
+  if(items.length<=8){
+    const addrExtra=Math.max(0, billAddr.split('\n').length-1)*4;
+    const wordsExtra=(('INR '+words(Math.round(total))+' Only').length>100)?4:0;
+    const naturalEnd=178 + items.length*7.5 + addrExtra + wordsExtra;
+    const slack=Math.max(0, 268-naturalEnd);
+    pad1=slack*0.4; pad2=slack*0.3; pad3=slack*0.3;
+  }
 
   /* ---------- header band (starts at very top) ---------- */
   doc.setFillColor(...NAVY); doc.rect(0,0,210,34,'F');
@@ -384,7 +401,7 @@ function downloadPDF(){
   doc.text('Total', cellX(cols[1]), y+5, {align:'left'});
   doc.text(String(qtyTot||''), cellX(cols[2]), y+5, {align:'center'});
   doc.text(inr(total), cellX(cols[5]), y+5, {align:'right'});
-  y+=rowH+4;
+  y+=rowH+4+pad1;
 
   /* ---------- amount in words + totals ---------- */
   if(y+36 > 275){ doc.addPage(); y=16; }
@@ -405,7 +422,7 @@ function downloadPDF(){
     doc.setTextColor(navyRow?NAVY[0]:20, navyRow?NAVY[1]:20, navyRow?NAVY[2]:20);
     doc.text(r[1], R-4, ry, {align:'right'});
   });
-  y+=38;
+  y+=38+pad2;
 
   /* ---------- declaration + signature ---------- */
   if(y+32 > 275){ doc.addPage(); y=16; }
@@ -419,7 +436,7 @@ function downloadPDF(){
   doc.text('For QUALITY ELECTRICIAN', 158, y+8, {align:'center'});
   doc.setFontSize(8.5); doc.setTextColor(...GREY); doc.setFont('helvetica','normal');
   doc.text('Authorized Signatory', 158, y+25, {align:'center'});
-  y+=36;
+  y+=36+pad3;
   doc.setFontSize(8); doc.setTextColor(...GREY);
   doc.text('This is a Computer-Generated Invoice.', 105, y, {align:'center'});
 
