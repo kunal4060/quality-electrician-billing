@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quality Electrician — Billing</title>
+<style>
+  :root{
+    --navy:#0A1F44; --navy2:#123064; --yellow:#FFB800;
+    --ink:#1a1d24; --muted:#6b7280; --line:#d7dce3; --bg:#eef1f6; --card:#ffffff;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif; background:var(--bg); color:var(--ink);}
+  header.topbar{background:var(--navy); color:#fff; padding:12px 20px; display:flex; align-items:center; gap:12px; position:sticky; top:0; z-index:50;}
+  header.topbar img{height:38px; border-radius:6px;}
+  header.topbar h1{font-size:18px; font-weight:700; letter-spacing:.3px;}
+  header.topbar small{display:block; font-size:11px; color:#b9c4d6; font-weight:400;}
+  .wrap{max-width:1280px; margin:0 auto; padding:16px;}
+  /* mobile tabs */
+  .tabs{display:none; gap:8px; margin-bottom:12px;}
+  .tabs button{flex:1; padding:10px; border:1px solid var(--line); background:#fff; border-radius:8px; font-size:14px; font-weight:600; cursor:pointer;}
+  .tabs button.active{background:var(--navy); color:#fff; border-color:var(--navy);}
+  .layout{display:grid; grid-template-columns:400px 1fr; gap:16px; align-items:start;}
+  .card{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:18px;}
+  .card h2{font-size:15px; margin-bottom:14px; color:var(--navy); text-transform:uppercase; letter-spacing:.6px;}
+  .field{margin-bottom:12px;}
+  .field label{display:block; font-size:12px; font-weight:600; color:var(--muted); margin-bottom:5px; text-transform:uppercase; letter-spacing:.4px;}
+  .field input,.field textarea,.field select{width:100%; padding:10px 12px; border:1px solid var(--line); border-radius:8px; font-size:14px; font-family:inherit;}
+  .field input:focus,.field textarea:focus,.field select:focus{outline:2px solid var(--yellow); border-color:var(--yellow);}
+  .row2{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+  .item-head,.item-row{display:grid; grid-template-columns:1fr 64px 74px 86px 30px; gap:6px; align-items:center; margin-bottom:6px;}
+  .item-head{font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase;}
+  .item-row input,.item-row select{padding:8px 6px; font-size:13px; border:1px solid var(--line); border-radius:6px; width:100%; font-family:inherit;}
+  .rm{border:none; background:#fee2e2; color:#b91c1c; border-radius:6px; height:32px; cursor:pointer; font-size:15px;}
+  .addbtn{width:100%; padding:10px; margin-top:6px; border:1px dashed var(--navy2); background:#f4f7ff; color:var(--navy); border-radius:8px; font-weight:600; cursor:pointer;}
+  .dlbtn{width:100%; padding:14px; margin-top:14px; border:none; background:var(--yellow); color:var(--navy); border-radius:10px; font-size:16px; font-weight:800; cursor:pointer;}
+  .dlbtn:disabled{opacity:.6; cursor:wait;}
+  .samplebtn{width:100%; padding:9px; margin-top:8px; border:1px solid var(--line); background:#fff; border-radius:8px; font-size:13px; cursor:pointer; color:var(--muted);}
+  .totals{background:#f8fafc; border:1px solid var(--line); border-radius:8px; padding:12px; margin-top:12px; font-size:14px;}
+  .totals div{display:flex; justify-content:space-between; padding:3px 0;}
+  .totals .grand{font-weight:800; font-size:16px; color:var(--navy); border-top:1px solid var(--line); margin-top:6px; padding-top:8px;}
+  /* preview */
+  .preview-card{position:sticky; top:76px;}
+  .preview-scroll{overflow:hidden; border:1px solid var(--line); border-radius:8px; background:#fff;}
+  #billScaler{transform-origin:top left;}
+  /* ---------- BILL (A4, 800px) ---------- */
+  #bill{width:800px; background:#fff; color:#111; font-size:13px; line-height:1.45;}
+  .b-head{background:var(--navy); color:#fff; display:flex; align-items:center; gap:18px; padding:18px 24px;}
+  .b-head img{height:74px; border-radius:8px; background:#000;}
+  .b-head .co h1{font-size:30px; letter-spacing:1px;}
+  .b-head .co p{font-size:12.5px; color:#cdd6e4; margin-top:2px;}
+  .b-title{background:var(--yellow); color:var(--navy); text-align:center; font-weight:800; letter-spacing:4px; padding:7px; font-size:15px;}
+  .b-meta{display:flex; border-bottom:2px solid var(--navy);}
+  .b-meta>div{flex:1; padding:10px 16px;}
+  .b-meta>div+div{border-left:2px solid var(--navy);}
+  .b-meta h4{font-size:11px; text-transform:uppercase; letter-spacing:1px; color:var(--muted); margin-bottom:6px;}
+  .b-meta .cname{font-weight:700; font-size:14px;}
+  .b-meta table{font-size:13px;}
+  .b-meta td{padding:2px 0;}
+  .b-meta td.k{color:var(--muted); padding-right:10px;}
+  table.items{width:100%; border-collapse:collapse;}
+  table.items th{background:var(--navy); color:#fff; padding:9px 8px; font-size:12px; text-transform:uppercase; letter-spacing:.5px;}
+  table.items td{border:1px solid var(--line); padding:8px; font-size:13px;}
+  table.items td.n,table.items th.n{text-align:center; width:52px;}
+  table.items td.q,table.items td.u{text-align:center;}
+  table.items td.q{width:76px;} table.items td.u{width:64px;}
+  table.items td.p,table.items td.a{text-align:right; width:110px; font-variant-numeric:tabular-nums;}
+  table.items tr.total td{background:#f1f5fb; font-weight:800;}
+  .b-words{display:flex; border:1px solid var(--line); border-top:none;}
+  .b-words .w{flex:1.4; padding:10px 14px; border-right:1px solid var(--line); font-size:12.5px;}
+  .b-words .w b{display:block; font-size:11px; text-transform:uppercase; color:var(--muted); margin-bottom:4px;}
+  .b-words .t{flex:1; padding:10px 14px; font-size:13px;}
+  .b-words .t div{display:flex; justify-content:space-between; padding:2px 0; font-variant-numeric:tabular-nums;}
+  .b-words .t .rem{font-weight:800; color:var(--navy); border-top:1px solid var(--line); margin-top:4px; padding-top:6px;}
+  .b-foot{display:flex; margin-top:0; border:1px solid var(--line); border-top:none;}
+  .b-foot .dec{flex:1.4; padding:12px 16px; font-size:12px; border-right:1px solid var(--line); color:#333;}
+  .b-foot .dec b{display:block; font-size:11px; text-transform:uppercase; color:var(--muted); margin-bottom:4px;}
+  .b-foot .sig{flex:1; text-align:center; padding:12px; font-size:12.5px;}
+  .b-foot .sig .for{font-weight:700; margin-bottom:34px;}
+  .b-foot .sig .as{color:var(--muted); font-size:11.5px;}
+  .b-note{text-align:center; font-size:11.5px; color:var(--muted); padding:10px; letter-spacing:.3px;}
+  @media (max-width:980px){
+    .layout{grid-template-columns:1fr;}
+    .tabs{display:flex;}
+    .preview-card{position:static;}
+    .pane{display:none;}
+    .pane.show{display:block;}
+  }
+</style>
+</head>
+<body>
+<header class="topbar">
+  <img src="logo.png" alt="Quality Electrician">
+  <h1>Quality Electrician<small>Billing — Tax Invoice Generator</small></h1>
+</header>
+
+<div class="wrap">
+  <div class="tabs">
+    <button id="tabForm" class="active" onclick="showPane('form')">Bill Details</button>
+    <button id="tabPrev" onclick="showPane('prev')">Preview</button>
+  </div>
+  <div class="layout">
+    <!-- FORM -->
+    <div class="card pane show" id="paneForm">
+      <h2>Bill Details</h2>
+      <div class="field"><label>Bill To — Name</label><input id="fName" placeholder="e.g. Shaskiya Ashramshala" oninput="render()"></div>
+      <div class="field"><label>Bill To — Address</label><textarea id="fAddr" rows="2" placeholder="Harsul Road, Devargaon" oninput="render()"></textarea></div>
+      <div class="row2">
+        <div class="field"><label>Invoice No</label><input id="fInvNo" value="QE/26-27/021" oninput="render()"></div>
+        <div class="field"><label>Invoice Date</label><input id="fDate" type="date" oninput="render()"></div>
+      </div>
+      <h2 style="margin-top:6px;">Items</h2>
+      <div class="item-head"><span>Item Name</span><span>Qty</span><span>UOM</span><span>Price/Unit</span><span></span></div>
+      <div id="items"></div>
+      <button class="addbtn" onclick="addItem()">+ Add Item</button>
+      <div class="field" style="margin-top:12px;"><label>Advance Received (₹)</label><input id="fAdv" type="number" min="0" value="0" oninput="render()"></div>
+      <div class="totals">
+        <div><span>Total Amount</span><b id="tTotal">₹0.00</b></div>
+        <div><span>Advance Received</span><span id="tAdv">₹0.00</span></div>
+        <div class="grand"><span>Remaining Amount</span><span id="tRem">₹0.00</span></div>
+      </div>
+      <button class="dlbtn" id="dlBtn" onclick="downloadPDF()">Download Bill (PDF)</button>
+      <button class="samplebtn" onclick="loadSample()">Fill sample data (demo)</button>
+    </div>
+    <!-- PREVIEW -->
+    <div class="card preview-card pane" id="panePrev">
+      <h2>Live Preview</h2>
+      <div class="preview-scroll"><div id="billScaler">
+        <div id="bill">
+          <div class="b-head">
+            <img src="logo.png" alt="Quality Electrician logo">
+            <div class="co">
+              <h1>QUALITY ELECTRICIAN</h1>
+              <p>Electrical Installation &amp; Fitting Services<br>At/Post Jopul, Tal: Dindori, Dist: Nashik - 422209</p>
+            </div>
+          </div>
+          <div class="b-title">TAX INVOICE</div>
+          <div class="b-meta">
+            <div><h4>Bill To</h4><div class="cname" id="bName">—</div><div id="bAddr" style="font-size:12.5px;color:#333;"></div></div>
+            <div><h4>Invoice Details</h4>
+              <table><tr><td class="k">Invoice No :</td><td id="bInvNo" style="font-weight:600;"></td></tr>
+              <tr><td class="k">Invoice Date :</td><td id="bDate" style="font-weight:600;"></td></tr></table>
+            </div>
+          </div>
+          <table class="items">
+            <thead><tr><th class="n">Sr No</th><th>Item Name</th><th class="q">Quantity</th><th class="u">UOM</th><th class="p">Price / Unit</th><th class="a">Amount</th></tr></thead>
+            <tbody id="bItems"></tbody>
+          </table>
+          <div class="b-words">
+            <div class="w"><b>Amount In Words</b><span id="bWords">—</span></div>
+            <div class="t">
+              <div><span>Total Amount :</span><b id="bTotal">0.00</b></div>
+              <div><span>Advance Received :</span><span id="bAdv">0.00</span></div>
+              <div class="rem"><span>Remaining Amount :</span><span id="bRem">0.00</span></div>
+            </div>
+          </div>
+          <div class="b-foot">
+            <div class="dec"><b>Declaration</b>We hereby declare that this invoice shows the actual price of the goods described and that all particulars are true and correct.</div>
+            <div class="sig"><div class="for">For QUALITY ELECTRICIAN</div><div class="as">Authorized Signatory</div></div>
+          </div>
+          <div class="b-note">This is a Computer-Generated Invoice.</div>
+        </div>
+      </div></div>
+    </div>
+  </div>
+</div>
+
+<script src="html2pdf.bundle.min.js"></script>
+<script>
+const UOMS=["Nos","Mtr","Lot","Set","Job","Sq Ft"];
+document.getElementById('fDate').valueAsDate=new Date();
+
+function addItem(name='',qty='',uom='Nos',price=''){
+  const d=document.createElement('div'); d.className='item-row';
+  d.innerHTML=`<input placeholder="Item name" value="${name}" oninput="render()">
+    <input type="number" min="0" placeholder="0" value="${qty}" oninput="render()">
+    <select onchange="render()">${UOMS.map(u=>`<option ${u===uom?'selected':''}>${u}</option>`).join('')}</select>
+    <input type="number" min="0" placeholder="0" value="${price}" oninput="render()">
+    <button class="rm" onclick="this.parentElement.remove();render()">×</button>`;
+  document.getElementById('items').appendChild(d); render();
+}
+function getItems(){
+  return [...document.querySelectorAll('#items .item-row')].map(r=>{
+    const [n,q,u,p]=[r.children[0].value.trim(),+r.children[1].value||0,r.children[2].value,+r.children[3].value||0];
+    return {name:n,qty:q,uom:u,price:p,amt:q*p};
+  }).filter(i=>i.name||i.qty||i.price);
+}
+function inr(n){return n.toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});}
+function words(n){
+  const a=['','One','Two','Three','Four','Five','Six','Seven','Eight','Nine','Ten','Eleven','Twelve','Thirteen','Fourteen','Fifteen','Sixteen','Seventeen','Eighteen','Nineteen'];
+  const b=['','','Twenty','Thirty','Forty','Fifty','Sixty','Seventy','Eighty','Ninety'];
+  function two(x){return x<20?a[x]:b[Math.floor(x/10)]+(x%10?' '+a[x%10]:'');}
+  function three(x){const h=Math.floor(x/100),r=x%100;return (h?a[h]+' Hundred'+(r?' ':''):'')+(r?two(r):'');}
+  if(n===0)return 'Zero';
+  let s='';
+  const cr=Math.floor(n/1e7); n%=1e7;
+  const lk=Math.floor(n/1e5); n%=1e5;
+  const th=Math.floor(n/1e3); n%=1e3;
+  if(cr)s+=three(cr)+' Crore ';
+  if(lk)s+=two(lk)+' Lakh ';
+  if(th)s+=two(th)+' Thousand ';
+  if(n)s+=three(n);
+  return s.trim();
+}
+function fmtDate(v){ if(!v)return '—'; const d=new Date(v+'T00:00:00'); return d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}).replace(/ /g,'-'); }
+
+function render(){
+  const items=getItems();
+  const total=items.reduce((s,i)=>s+i.amt,0);
+  const adv=+document.getElementById('fAdv').value||0;
+  const rem=total-adv;
+  document.getElementById('tTotal').textContent='₹'+inr(total);
+  document.getElementById('tAdv').textContent='₹'+inr(adv);
+  document.getElementById('tRem').textContent='₹'+inr(rem);
+  const nm=document.getElementById('fName').value.trim()||'—';
+  document.getElementById('bName').textContent=nm;
+  document.getElementById('bAddr').textContent=document.getElementById('fAddr').value.trim();
+  document.getElementById('bInvNo').textContent=document.getElementById('fInvNo').value.trim()||'—';
+  document.getElementById('bDate').textContent=fmtDate(document.getElementById('fDate').value);
+  const tb=document.getElementById('bItems');
+  tb.innerHTML=items.map((it,i)=>`<tr><td class="n">${i+1}</td><td>${it.name||'—'}</td><td class="q">${it.qty||''}</td><td class="u">${it.uom}</td><td class="p">${it.price?inr(it.price):''}</td><td class="a">${inr(it.amt)}</td></tr>`).join('')
+    +`<tr class="total"><td class="n"></td><td>Total</td><td class="q">${items.reduce((s,i)=>s+i.qty,0)||''}</td><td class="u"></td><td class="p"></td><td class="a">${inr(total)}</td></tr>`;
+  document.getElementById('bWords').textContent='INR '+words(Math.round(total))+' Only';
+  document.getElementById('bTotal').textContent=inr(total);
+  document.getElementById('bAdv').textContent=inr(adv);
+  document.getElementById('bRem').textContent=inr(rem);
+  fitPreview();
+}
+function fitPreview(){
+  const wrap=document.querySelector('.preview-scroll');
+  const s=Math.min(1,(wrap.clientWidth-2)/800);
+  const sc=document.getElementById('billScaler');
+  sc.style.transform=`scale(${s})`;
+  sc.style.width='800px';
+  wrap.style.height=(document.getElementById('bill').offsetHeight*s)+'px';
+}
+function showPane(which){
+  const mob=window.innerWidth<=980;
+  document.getElementById('tabForm').classList.toggle('active',which==='form');
+  document.getElementById('tabPrev').classList.toggle('active',which==='prev');
+  document.getElementById('paneForm').classList.toggle('show',!mob||which==='form');
+  document.getElementById('panePrev').classList.toggle('show',!mob||which==='prev');
+  if(which==='prev')setTimeout(fitPreview,50);
+}
+function loadSample(){
+  document.getElementById('items').innerHTML='';
+  document.getElementById('fName').value='Shaskiya Ashramshala';
+  document.getElementById('fAddr').value='Harsul Road, Devargaon';
+  document.getElementById('fInvNo').value='QE/26-27/020';
+  document.getElementById('fAdv').value=102000;
+  [['Light Point',293,'Nos',165],['Soket Point',236,'Nos',165],['Fan Point',139,'Nos',165],['Power Point',14,'Nos',330],['Earthing Point',112,'Nos',165],['Main Line Suply',600,'Mtr',40],['DB Box',1,'Nos',3000]]
+    .forEach(r=>addItem(...r));
+}
+function downloadPDF(){
+  const name=document.getElementById('fName').value.trim();
+  if(!name){alert('Please enter the Bill To name first.');return;}
+  if(getItems().length===0){alert('Please add at least one item.');return;}
+  const btn=document.getElementById('dlBtn'); btn.disabled=true; btn.textContent='Generating PDF…';
+  const fname=name.replace(/[^a-zA-Z0-9]+/g,'_').replace(/^_+|_+$/g,'')+'.pdf';
+  const el=document.getElementById('bill');
+  html2pdf().set({
+    margin:0, filename:fname,
+    image:{type:'jpeg',quality:0.98},
+    html2canvas:{scale:2,useCORS:true,backgroundColor:'#ffffff'},
+    jsPDF:{unit:'mm',format:'a4',orientation:'portrait'}
+  }).from(el).save().then(()=>{btn.disabled=false;btn.textContent='Download Bill (PDF)';})
+  .catch(()=>{btn.disabled=false;btn.textContent='Download Bill (PDF)';alert('PDF failed — try again.');});
+}
+addItem();addItem();addItem();render();
+window.addEventListener('resize',()=>{showPane(window.innerWidth<=980?(document.getElementById('tabPrev').classList.contains('active')?'prev':'form'):'form');fitPreview();});
+showPane('form');
+</script>
+</body>
+</html>
