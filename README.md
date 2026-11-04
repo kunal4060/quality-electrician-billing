@@ -18,8 +18,9 @@ declaration and authorized signatory block.
 
 ## Files
 
-- `index.html` — the whole app (form + live preview + PDF export via html2pdf.js CDN)
-- `logo.png` — company logo used on the bill header
+- `index.html` — the whole app (form + live preview + vector PDF export via local jsPDF)
+- `logo.png` — company logo (transparent background, blends into the navy bill header)
+- `jspdf.umd.min.js` — PDF library (bundled locally, works offline)
 
 ## Live
 
